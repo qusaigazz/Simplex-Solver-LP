@@ -50,16 +50,8 @@ def create_tableau(A,b,c):
     return tableau
 
 
-c = np.array([[40, 30, 50]])
-A = np.array([
-    [2,1,3],
-    [1,2,1],
-    [3,2,2]
-    ])
 
-b = np.array([[100, 80, 120]])
-tableau = create_tableau(A,b,c)
-print(tableau)
+
 
 def choose_entering_var(tableau):
     '''
@@ -68,12 +60,11 @@ def choose_entering_var(tableau):
     and defines that as the pivot column'''
     
     #choose the column with the largest positive value
-    obj_row = tableau[0]
-    enter_var_index = np.argmax(obj_row)
+    obj_row = tableau[0,1:-1]
+    enter_var_index = np.argmax(obj_row) + 1
     return enter_var_index
 
-enter_var_index = choose_entering_var(tableau)
-print(enter_var_index)
+
 
 def choose_leaving_var(tableau, enter_var_index):
     '''
@@ -95,9 +86,6 @@ def choose_leaving_var(tableau, enter_var_index):
     return leave_var_index
     
 
-leaving_var_index = choose_leaving_var(tableau, enter_var_index)
-print(leaving_var_index)
-
 
 
 def pivot(tableau, enter_index, leave_index):
@@ -109,25 +97,89 @@ def pivot(tableau, enter_index, leave_index):
     #take the enter & leave row and column indicies, normalize pivot row 
     pivot_cell = tableau[leave_index, enter_index]
     tableau[leave_index, :] = tableau[leave_index, :] / pivot_cell # normalize pivot row
-    print(tableau)
 
+    for row in range(tableau.shape[0]):
+        if row == leave_index: # for all rows except the pivot row
+            continue
 
-pivot(tableau, enter_var_index, leaving_var_index )
+        tableau[row,:] = tableau[row,:] - (tableau[leave_index,:] * tableau[row,enter_index]) # makes all non-pivot rows, pivot column value = 0
 
-# def is_optimal():
-
-
-
-
-
-# def extract_solution():
+    return tableau 
 
 
 
 
+def is_optimal(tableau):
+    ''' This function checks to see if the tableau has reached optimality.
+    It does this by checking if any cost coefficients are greater than zero,
+    if so, optimality has not been reached and the tableau can pivot. 
+    Else, optimality is reached 
+    '''
+    lhs = tableau[0, 1:-1]
+    if np.any(lhs > 0):
+        return False
+    else:
+        return True
 
 
-# def simplex():
 
 
+
+def extract_solution(tableau):
+    '''This function extracts the solution from the tableau, 
+    by identifying the basis variables, identifying which row the basis element 
+    is and then assigning the variable the corresponding rhs value
+    '''
+    # create optimal decision variable array
+    optimal_sol = np.zeros(tableau.shape[1] - 1)
+
+    # find index of basis variables 
+    for column in range(tableau.shape[1]):
+        if np.count_nonzero(tableau[:, column] == 1) == 1 and np.count_nonzero((tableau[:,column]) == 0) == len(tableau[:,column]) - 1:
+            basis_column = tableau[:, column]
+            basis_row_index = np.argmax(basis_column)
+            optimal_sol[column] = tableau[basis_row_index, -1]
+
+
+        else: 
+            continue
+
+    optimal_sol[0] = -optimal_sol[0] # change z value sign to positive
+
+    return optimal_sol
+
+
+
+
+def Simplex(A,b,c):
+    '''This function is the main function which creates the tableau, 
+    pivots until optimality is reached and returns the solution.
+    This is done by using the helper functions.
+    '''
+
+    tableau = create_tableau(A,b,c) #create tableau
+
+    while is_optimal(tableau) == False: # keep pivoting until optimality is met
+        enter_var_index = choose_entering_var(tableau)
+        leaving_var_index = choose_leaving_var(tableau, enter_var_index)
+        tableau = pivot(tableau, enter_var_index, leaving_var_index)
+
+    optimal_sol = extract_solution(tableau) # extract solution from optimal tableau 
+    return optimal_sol
+
+
+###-------------input-----------##
+
+c = np.array([[40, 30, 50]])
+A = np.array([
+    [2,1,3],
+    [1,2,1],
+    [3,2,2]
+    ])
+
+b = np.array([[100, 80, 120]])
+
+'''Solution format = [z,x1,x2,...,xn]'''
+
+print(Simplex(A,b,c))
 
